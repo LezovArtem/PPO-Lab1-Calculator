@@ -76,7 +76,6 @@ $errorMessage = $data['errorMessage'];
             background: #3cbf5f;
         }
         .buttons .clear {
-            grid-column: span 2;
             background: #dc3545;
         }
         .buttons .clear:hover {
@@ -137,6 +136,8 @@ $errorMessage = $data['errorMessage'];
         <input type="text" class="screen" id="expression" name="expression" value="<?= htmlspecialchars($expression) ?>" readonly>
 
         <div class="buttons">
+            <button type="button" onclick="insert('(')">(</button>
+            <button type="button" onclick="insert(')')">)</button>
             <button type="button" class="clear" onclick="clearInput()">C</button>
             <button type="button" class="clear" onclick="backspace()">←</button>
 
