@@ -3,6 +3,8 @@
 require_once 'ExpressionValidator.php';
 require_once 'ExpressionService.php';
 require_once 'CalculatorController.php';
+require_once 'CalculatorFunctions.php';
+require_once 'MemoryService.php'; // добавлено
 
 $controller = new CalculatorController();
 $data = $controller->handleRequest();
@@ -31,7 +33,7 @@ $errorMessage = $data['errorMessage'];
             padding: 20px;
             border-radius: 15px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            width: 320px;
+            width: 480px;
         }
         .calculator form {
             display: flex;
@@ -44,12 +46,18 @@ $errorMessage = $data['errorMessage'];
             padding: 15px;
             text-align: right;
             border-radius: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 5px;
             border: 2px inset #555;
+        }
+        .memory {
+            color: #87ceeb;
+            font-size: 16px;
+            text-align: right;
+            margin-bottom: 15px;
         }
         .buttons {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(6, 1fr);
             gap: 10px;
         }
         .buttons button {
@@ -76,10 +84,14 @@ $errorMessage = $data['errorMessage'];
             background: #3cbf5f;
         }
         .buttons .clear {
+            grid-column: span 2;
             background: #dc3545;
         }
         .buttons .clear:hover {
             background: #f95f6f;
+        }
+        .filler {
+            background: #000000;
         }
         .error {
             color: #ff6b6b;
@@ -99,9 +111,19 @@ $errorMessage = $data['errorMessage'];
             const current = input.value;
 
             const isOperator = /[+\-*/.^%]/.test(val);
+            const isFunctionLike = /^(sqrt|log|pow|sin|cos|tg|ln|ln2|M\+|M\-|MR\(\)|MC\(\)|M\+\(|M\-\(|pow\(|sqrt\(|log\(|sin\(|cos\(|tg\(|ln\(|ln2\()$/;
 
-            if (current === '0' && !isOperator && val !== '.') {
-                // Заменить 0 на цифру
+            if (val === '.') {
+                const parts = current.split(/[\+\-\*\/\^%()]/);
+                const lastNumber = parts[parts.length - 1];
+                if (lastNumber.includes('.')) {
+                    return;
+                }
+            }
+
+            if (current === '0' && (isFunctionLike.test(val) || !isOperator)) {
+                input.value = val;
+            } else if (current === '0' && !isOperator && val !== '.') {
                 input.value = val;
             } else {
                 input.value += val;
@@ -128,39 +150,49 @@ $errorMessage = $data['errorMessage'];
             }
         };
     </script>
-
 </head>
 <body>
 <div class="calculator">
     <form method="post">
         <input type="text" class="screen" id="expression" name="expression" value="<?= htmlspecialchars($expression) ?>" readonly>
+        <div class="memory">Память: <?= MemoryService::recall() ?></div>
 
         <div class="buttons">
-            <button type="button" onclick="insert('(')">(</button>
-            <button type="button" onclick="insert(')')">)</button>
+            <button class="operator" type="button" onclick="insert('tg(')">tg</button>
+            <button class="operator" type="button" onclick="insert('^')">^</button>
             <button type="button" class="clear" onclick="clearInput()">C</button>
             <button type="button" class="clear" onclick="backspace()">←</button>
 
-            <button class="operator" type="button" onclick="insert('log(')">log</button>
-            <button class="operator" type="button" onclick="insert('^')">^</button>
-            <button class="operator" type="button" onclick="insert('%')">%</button>
+            <button class="operator" type="button" onclick="insert('cos(')">cos</button>
             <button class="operator" type="button" onclick="insert('sqrt(')">√</button>
+            <button class="filler" type="button"></button>
+            <button type="button" onclick="insert('(')">(</button>
+            <button type="button" onclick="insert(')')">)</button>
+            <button class="operator" type="button" onclick="insert('%')">%</button>
 
+            <button class="operator" type="button" onclick="insert('sin(')">sin</button>
+            <button class="operator" type="button" onclick="insert('M+(')">M+</button>
             <button type="button" onclick="insert('7')">7</button>
             <button type="button" onclick="insert('8')">8</button>
             <button type="button" onclick="insert('9')">9</button>
             <button class="operator" type="button" onclick="insert('/')">/</button>
 
+            <button class="operator" type="button" onclick="insert('ln2(')">ln2</button>
+            <button class="operator" type="button" onclick="insert('M-(')">M-</button>
             <button type="button" onclick="insert('4')">4</button>
             <button type="button" onclick="insert('5')">5</button>
             <button type="button" onclick="insert('6')">6</button>
             <button class="operator" type="button" onclick="insert('*')">*</button>
 
+            <button class="operator" type="button" onclick="insert('ln(')">ln</button>
+            <button class="operator" type="button" onclick="insert('MR')">MR</button>
             <button type="button" onclick="insert('1')">1</button>
             <button type="button" onclick="insert('2')">2</button>
             <button type="button" onclick="insert('3')">3</button>
             <button class="operator" type="button" onclick="insert('-')">-</button>
 
+            <button class="operator" type="button" onclick="insert('log(')">log</button>
+            <button class="operator" type="button" onclick="insert('MC')">MC</button>
             <button type="button" onclick="insert('0')">0</button>
             <button type="button" onclick="insert('.')">.</button>
             <button type="submit" class="equals">=</button>
@@ -174,4 +206,3 @@ $errorMessage = $data['errorMessage'];
 </div>
 </body>
 </html>
-

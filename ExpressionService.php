@@ -1,55 +1,59 @@
 <?php
 
-declare(strict_types=1);
+require_once 'CalculatorFunctions.php';
 
-final class ExpressionService
+class ExpressionService
 {
-    private array $allowedFunctions;
-
-    public function __construct()
+    public function evaluate(string $expression): float|string
     {
-        $this->allowedFunctions = [
-            'sqrt' => function ($x) {
-                if ($x < 0) throw new Exception("Квадратный корень из отрицательного числа.");
-                return sqrt($x);
-            },
-            'log' => function ($x) {
-                if ($x <= 0) throw new Exception("Логарифм определён только для положительных чисел.");
-                return log10($x);
-            },
-            'pow' => function ($x, $y) {
-                return pow($x, $y);
-            },
-        ];
+        try {
+            $prepared = $this->prepare($expression);
+            $result = eval("return $prepared;");
+            if (!is_numeric($result)) {
+                throw new Exception("Невалидный результат.");
+            }
+            return round($result, 8);
+        } catch (Throwable $e) {
+            return "Ошибка в выражении: " . $e->getMessage();
+        }
     }
 
     public function prepare(string $expr): string
     {
         $expr = preg_replace('/\s+/', '', $expr);
-        $expr = preg_replace('/(\d+)%/', '($1/100)', $expr);
 
-        while (preg_match('/(\d+|\(.+?\))\^(\d+|\(.+?\))/', $expr)) {
-            $expr = preg_replace('/(\d+|\(.+?\))\^(\d+|\(.+?\))/', 'pow($1,$2)', $expr, 1);
+        // Заменяем ^ на pow_safe
+        while (preg_match('/(\d+(?:\.\d+)?|\([^)]+\))\^(\d+(?:\.\d+)?|\([^)]+\))/', $expr)) {
+            $expr = preg_replace('/(\d+(?:\.\d+)?|\([^)]+\))\^(\d+(?:\.\d+)?|\([^)]+\))/', 'pow_safe($1,$2)', $expr, 1);
         }
+
+        // Заменяем проценты на деление на 100
+        $expr = preg_replace('/(?<=\d)%/', '/100', $expr);
+
+        // Поддержка всех функций: заменяем только имена функций, не трогая аргументы
+        $replacements = [
+            'sqrt('   => 'sqrt_safe(',
+            'log('    => 'log_safe(',
+            'ln('     => 'ln(',
+            'ln2('    => 'ln2(',
+            'sin('    => 'sin_safe(',
+            'cos('    => 'cos_safe(',
+            'tg('     => 'tg(',
+            'pow('    => 'pow_safe(',
+
+            // Операции с памятью
+            'M+('     => 'memAdd(',
+            'M-('     => 'memSub(',
+            'MR'      => 'memRecall()',
+            'MC'      => 'memClear()',
+        ];
+
+
+        $expr = str_replace(array_keys($replacements), array_values($replacements), $expr);
+
+        $expr = preg_replace('/(?<!\w)MR(?!\w)/', 'memRecall()', $expr);
+        $expr = preg_replace('/(?<!\w)MC(?!\w)/', 'memClear()', $expr);
 
         return $expr;
-    }
-
-    public function evaluate(string $expr): float
-    {
-        $code = 'return ' . $expr . ';';
-
-        $evalFunc = function () use ($code) {
-            extract($this->allowedFunctions);
-            return eval($code);
-        };
-
-        $result = $evalFunc();
-
-        if ($result === false) {
-            throw new Exception("Ошибка в выражении.");
-        }
-
-        return $result ?? 0;
     }
 }
